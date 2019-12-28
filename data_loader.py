@@ -12,6 +12,8 @@ class DataLoader:
 
 data_loader = DataLoader()
 X, Y = data_loader.getBatch(16, "train")
+# X - [batch_size, width, height, channels]
+# Y - [batch_size, num_classes]
 print "train", X, Y
 X, Y = data_loader.getBatch(16, "test")
 print "test", X, Y
