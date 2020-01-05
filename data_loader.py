@@ -29,7 +29,7 @@ def simultaneous_shuffle(images, labels):
     return images, labels
 
 def one_hot_encode(labels):
-    one_hot_labels = np.zeros((len(labels), 10), dtype = np.int32)
+    one_hot_labels = np.zeros((len(labels), 10), dtype = np.float32)
     one_hot_labels[np.arange(len(labels)), labels] = 1
     return one_hot_labels
 
@@ -61,6 +61,7 @@ class DataLoader:
         self.test_X, self.test_Y = get_test()
         self.train_ind, self.val_ind, self.test_ind = 0, 0 , 0
         self.n_train, self.n_val, self.n_test = self.train_X.shape[0], self.val_X.shape[0], self.test_X.shape[0]
+
     def get_batch(self, batch_size, tag):
         if tag == 'train':
             X, Y = self.train_X[self.train_ind : self.train_ind + batch_size], self.train_Y[self.train_ind : self.train_ind + batch_size]
@@ -77,13 +78,22 @@ class DataLoader:
         self.train_ind, self.val_ind, self.test_ind = 0, 0 , 0
         self.train_X , self.train_Y = simultaneous_shuffle(self.train_X , self.train_Y)
 
+    def num_batches(self, batch_size, tag):
+        if tag == 'train':
+            n_batches = int (self.n_train / batch_size)
+        elif tag == 'val':
+            n_batches = int (self.n_val / batch_size)
+        elif tag == 'test':
+            n_batches = int (self.n_test / batch_size)
+        return n_batches
+
 if __name__ == "__main__":
     data_loader = DataLoader()
     # X - [batch_size, height, width, channels]
     # Y - [batch_size, num_classes]
-    X, Y = data_loader.get_batch(16, "train")
-    print ("train", X, Y)
-    X, Y = data_loader.get_batch(16, "test")
-    print ("test", X, Y)
-    X, Y = data_loader.get_batch(16, "val")
-    print ("val", X, Y)
+    X = data_loader.num_batches(16, "train")
+    print ("train", X)
+    X = data_loader.num_batches(16, "val")
+    print ("val", X)
+    X = data_loader.num_batches(16, "test")
+    print ("test", X)
