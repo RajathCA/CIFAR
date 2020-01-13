@@ -34,9 +34,9 @@ def one_hot_encode(labels):
     return one_hot_labels
 
 def get_train_and_val():
-    images_all, labels_all = get_img_and_label('data\\cifar-10-batches-py\\data_batch_1')
+    images_all, labels_all = get_img_and_label('./data/cifar-10-batches-py/data_batch_1')
     for x in range(2, 6):
-        file = 'data\\cifar-10-batches-py\\data_batch_' + str(x)
+        file = './data/cifar-10-batches-py/data_batch_' + str(x)
         images, labels = get_img_and_label(file)
         images_all = np.concatenate((images_all, images))
         labels_all = np.concatenate((labels_all, labels))
@@ -50,7 +50,7 @@ def get_train_and_val():
     return images_train, one_hot_encode(labels_train), images_val, one_hot_encode(labels_val)
 
 def get_test():
-    images_test, labels_test = get_img_and_label('data\\cifar-10-batches-py\\test_batch')
+    images_test, labels_test = get_img_and_label('./data/cifar-10-batches-py/test_batch')
     num_images_test = images_test.shape[0]
     return images_test, one_hot_encode(labels_test)
 
