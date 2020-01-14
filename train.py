@@ -1,11 +1,10 @@
 #from models.feedforward import feedforward
 from data_loader import DataLoader
 
-MAX_EPOCHS = 50
+MAX_EPOCHS = 30
 learning_rate = 0.001
-batch_size = 1024
+batch_size = 512
 delay = 3
-
 
 import tensorflow as tf
 import numpy as np
@@ -21,43 +20,20 @@ n_classes = 10
 x = tf.placeholder(tf.float32, shape = (None, height, width, channels))
 y = tf.placeholder(tf.float32, shape = (None, n_classes))
 
-n_hidden_1 = 2048
-n_hidden_2 = 2048
-n_hidden_3 = 1024
-n_hidden_4 = 1024
+n_hidden_1 = 512
+n_hidden_2 = 512
 
 flat_x = tf.layers.flatten(x)
-
-n_input = width*height*channels 
-
-weights = {
-'h1' : tf.Variable(tf.random_normal([n_input, n_hidden_1])),
-'h2' : tf.Variable(tf.random_normal([n_hidden_1, n_hidden_2])),
-'h3' : tf.Variable(tf.random_normal([n_hidden_2, n_hidden_3])),
-'h4' : tf.Variable(tf.random_normal([n_hidden_3, n_hidden_4])),
-'out' : tf.Variable(tf.random_normal([n_hidden_4, n_classes]))
-}
-
-biases = {
-'h1' : tf.Variable(tf.random_normal([n_hidden_1])),
-'h2' : tf.Variable(tf.random_normal([n_hidden_2])),
-'h3' : tf.Variable(tf.random_normal([n_hidden_3])),
-'h4' : tf.Variable(tf.random_normal([n_hidden_4])),
-'out' : tf.Variable(tf.random_normal([n_classes]))
-}
 
 
 # Define model (graph)
 # Start with feedforward model
 
-layer_1 = tf.nn.relu(tf.add(tf.matmul(flat_x, weights['h1']), biases['h1']))
-layer_2 = tf.nn.relu(tf.add(tf.matmul(layer_1, weights['h2']), biases['h2']))
-layer_3 = tf.nn.relu(tf.add(tf.matmul(layer_2, weights['h3']), biases['h3']))
-layer_4 = tf.nn.relu(tf.add(tf.matmul(layer_3, weights['h4']), biases['h4']))
-out = tf.add(tf.matmul(layer_4, weights['out']), biases['out'])
+layer_1 = tf.layers.dense(flat_x, n_hidden_1, activation = tf.nn.relu)
+layer_2 = tf.layers.dense(layer_1, n_hidden_2, activation = tf.nn.relu)
+out = tf.layers.dense(layer_2, n_classes)
 
 logits = out
-
 
 # Define Cross-Entropy Loss
 
@@ -65,8 +41,10 @@ loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = logits
 
 
 # Apply softmax to logits
+
 pred = tf.nn.softmax(logits)
 correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+
 
 # Calculate accuracy
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
@@ -82,8 +60,14 @@ train_op = optimizer.minimize(loss_op)
 
 data_loader = DataLoader()
 
-
 # Define session and initialize weights
+# For training, implement the following using DataLoader Object
+# Run training MAX_EPOCHS times
+# In every epoch, cycle through all training data randomly
+# After every epoch, save model weights in folder model_weights using tf.train.Saver()
+# After every epoch, compute avg. loss on validation set
+# Stop training once validation cost starts increasing
+
 
 saver = tf.train.Saver()
 init = tf.global_variables_initializer()
@@ -110,7 +94,6 @@ with tf.Session() as sess:
 
         print("Epoch:", '%04d' % (epoch+1), "Training cost = {:.9f}".format(avg_cost), "Validation cost = {:.9f}".format(val_cost))
 
-
         if val_cost < val_cost_min:
             val_cost_min = val_cost
             min_cost_ind = (epoch+1)
@@ -125,33 +108,8 @@ with tf.Session() as sess:
         saver.save(sess, './weights/feed_forward', global_step = (epoch+1))
 
     #Test Accuracy
+    # Load weights using tf.train.Saver() from epoch with lowest validation cost.
+    # Compute avg. test accuracy
     saver.restore(sess, './weights/feed_forward-' + str(min_cost_ind))
     batch_x, batch_y = data_loader.get_batch(data_loader.n_test , 'test')
     print("Accuracy:", accuracy.eval({x : batch_x, y : batch_y}))
-
-
-# For training, implement the following using DataLoader Object
-# Run training MAX_EPOCHS times
-# In every epoch, cycle through all training data randomly
-# After every epoch, save model weights in folder model_weights using tf.train.Saver()
-# After every epoch, compute avg. loss on validation set
-# Stop training once validation cost starts increasing
-# Split entire training data into train (90%) and val (10%) sets
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Load weights using tf.train.Saver() from epoch with lowest validation cost.
-# Compute avg. test accuracy and loss
