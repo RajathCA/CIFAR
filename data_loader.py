@@ -1,20 +1,20 @@
+import numpy as np
+
 train_percent = 0.9
 val_percent = 1 - train_percent
 num_channels = 3
 img_size = 32
 
-import numpy as np
-
 def unpickle(file):
     import pickle
     with open(file, 'rb') as fo:
-        dict = pickle.load(fo, encoding = 'bytes')
+        dict = pickle.load(fo, encoding='bytes')
     return dict
 
 def get_img_and_label(file):
     dict = unpickle(file)
     raw_img = dict[b'data']
-    raw_float = np.array(raw_img, dtype = np.float32) / 255.0
+    raw_float = np.array(raw_img, dtype=np.float32) / 255.0
     images = raw_float.reshape([-1, num_channels, img_size, img_size])
     images = images.transpose([0, 2, 3, 1])
     labels = dict[b'labels']
@@ -29,7 +29,7 @@ def simultaneous_shuffle(images, labels):
     return images, labels
 
 def one_hot_encode(labels):
-    one_hot_labels = np.zeros((len(labels), 10), dtype = np.float32)
+    one_hot_labels = np.zeros((len(labels), 10), dtype=np.float32)
     one_hot_labels[np.arange(len(labels)), labels] = 1
     return one_hot_labels
 
@@ -42,7 +42,7 @@ def get_train_and_val():
         labels_all = np.concatenate((labels_all, labels))
     images_all, labels_all = simultaneous_shuffle(images_all, labels_all)
     num_images_all = images_all.shape[0]
-    num_images_train = int (num_images_all * train_percent)
+    num_images_train = int(num_images_all * train_percent)
     images_train = images_all[:num_images_train]
     images_val = images_all[num_images_train:]
     labels_train = labels_all[:num_images_train]
@@ -57,9 +57,9 @@ def get_test():
 class DataLoader:
 
     def __init__(self):
-        self.train_X , self.train_Y, self.val_X, self.val_Y = get_train_and_val()
+        self.train_X, self.train_Y, self.val_X, self.val_Y = get_train_and_val()
         self.test_X, self.test_Y = get_test()
-        self.train_ind, self.val_ind, self.test_ind = 0, 0 , 0
+        self.train_ind, self.val_ind, self.test_ind = 0, 0, 0
         self.n_train, self.n_val, self.n_test = self.train_X.shape[0], self.val_X.shape[0], self.test_X.shape[0]
 
     def get_batch(self, batch_size, tag):
@@ -75,16 +75,16 @@ class DataLoader:
         return X, Y
 
     def reset_epoch(self):
-        self.train_ind, self.val_ind, self.test_ind = 0, 0 , 0
-        self.train_X , self.train_Y = simultaneous_shuffle(self.train_X , self.train_Y)
+        self.train_ind, self.val_ind, self.test_ind = 0, 0, 0
+        self.train_X, self.train_Y = simultaneous_shuffle(self.train_X, self.train_Y)
 
     def num_batches(self, batch_size, tag):
         if tag == 'train':
-            n_batches = int (self.n_train / batch_size)
+            n_batches = int(self.n_train / batch_size)
         elif tag == 'val':
-            n_batches = int (self.n_val / batch_size)
+            n_batches = int(self.n_val / batch_size)
         elif tag == 'test':
-            n_batches = int (self.n_test / batch_size)
+            n_batches = int(self.n_test / batch_size)
         return n_batches
 
 if __name__ == "__main__":
@@ -92,8 +92,8 @@ if __name__ == "__main__":
     # X - [batch_size, height, width, channels]
     # Y - [batch_size, num_classes]
     X = data_loader.num_batches(16, "train")
-    print ("train", X)
+    print("train", X)
     X = data_loader.num_batches(16, "val")
-    print ("val", X)
+    print("val", X)
     X = data_loader.num_batches(16, "test")
-    print ("test", X)
+    print("test", X)

@@ -1,13 +1,15 @@
-#from models.feedforward import feedforward
+import sys
+import tensorflow as tf
+
 from data_loader import DataLoader
+from models import get_logits
+
 
 MAX_EPOCHS = 30
 learning_rate = 0.001
-batch_size = 512
+batch_size = 128
 delay = 3
 
-import tensorflow as tf
-import numpy as np
 
 width = 32
 height = 32
@@ -17,27 +19,14 @@ n_classes = 10
 
 # Define placeholders (inputs and outputs given to model)
 
-x = tf.placeholder(tf.float32, shape = (None, height, width, channels))
-y = tf.placeholder(tf.float32, shape = (None, n_classes))
+x = tf.placeholder(tf.float32, shape=(None, height, width, channels))
+y = tf.placeholder(tf.float32, shape=(None, n_classes))
 
-n_hidden_1 = 512
-n_hidden_2 = 512
-
-flat_x = tf.layers.flatten(x)
-
-
-# Define model (graph)
-# Start with feedforward model
-
-layer_1 = tf.layers.dense(flat_x, n_hidden_1, activation = tf.nn.relu)
-layer_2 = tf.layers.dense(layer_1, n_hidden_2, activation = tf.nn.relu)
-out = tf.layers.dense(layer_2, n_classes)
-
-logits = out
+logits = get_logits(x, sys.argv[1])
 
 # Define Cross-Entropy Loss
 
-loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = logits, labels = y))
+loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=y))
 
 
 # Apply softmax to logits
@@ -52,7 +41,7 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 # Define optimizer
 # and the optimize operation
 
-optimizer = tf.train.AdamOptimizer(learning_rate = learning_rate)
+optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 train_op = optimizer.minimize(loss_op)
 
 
@@ -72,15 +61,15 @@ data_loader = DataLoader()
 saver = tf.train.Saver()
 init = tf.global_variables_initializer()
 
-val_cost_min = float ('inf')
+val_cost_min = float('inf')
 min_cost_ind = -1
 count = 0
 
 with tf.Session() as sess:
     sess.run(init)
 
-    for epoch in range(MAX_EPOCHS):   
-        data_loader.reset_epoch() 
+    for epoch in range(MAX_EPOCHS):
+        data_loader.reset_epoch()
         avg_cost = 0.
         n_batches = data_loader.num_batches(batch_size, 'train')
 
@@ -89,8 +78,18 @@ with tf.Session() as sess:
             _, c = sess.run([train_op, loss_op], feed_dict={x : batch_x, y : batch_y})
             avg_cost += c / n_batches
 
-        batch_x, batch_y = data_loader.get_batch(data_loader.n_val, 'val')
-        val_cost = loss_op.eval({x : batch_x, y : batch_y})  #Calculating Validation Cost
+
+        #Validation Cost Calculated in batches
+        #Increase n_batches_val in case of run out of memory errors
+
+        val_cost = 0.
+        n_batches_val = 5
+        batch_size_val = int(data_loader.n_val / n_batches_val)
+
+        for i in range(n_batches_val):   #Loop to Calculate Validation Cost
+            batch_x, batch_y = data_loader.get_batch(batch_size_val, 'val')
+            c = loss_op.eval({x : batch_x, y : batch_y})
+            val_cost += c / n_batches_val
 
         print("Epoch:", '%04d' % (epoch+1), "Training cost = {:.9f}".format(avg_cost), "Validation cost = {:.9f}".format(val_cost))
 
@@ -98,18 +97,31 @@ with tf.Session() as sess:
             val_cost_min = val_cost
             min_cost_ind = (epoch+1)
             count = 0
-        
+
         else:
             count += 1
 
         if count == delay:
             break
 
-        saver.save(sess, './weights/feed_forward', global_step = (epoch+1))
+        saver.save(sess, './weights/feed_forward', global_step=(epoch+1))
 
     #Test Accuracy
     # Load weights using tf.train.Saver() from epoch with lowest validation cost.
     # Compute avg. test accuracy
+
     saver.restore(sess, './weights/feed_forward-' + str(min_cost_ind))
-    batch_x, batch_y = data_loader.get_batch(data_loader.n_test , 'test')
-    print("Accuracy:", accuracy.eval({x : batch_x, y : batch_y}))
+
+    #Average Test Accuracy Calculated in batches
+    #Increase n_batches_test in case of run out of memory errors
+
+    avg_accuracy = 0.
+    n_batches_test = 10
+    batch_size_test = int(data_loader.n_test / n_batches_test)
+
+    for i in range(n_batches_test):   #Loop to Calculate average Test Accuracy
+        batch_x, batch_y = data_loader.get_batch(batch_size_test, 'test')
+        c = accuracy.eval({x : batch_x, y : batch_y})
+        avg_accuracy += c / n_batches_test
+
+    print("Accuracy:", avg_accuracy)
