@@ -1,5 +1,7 @@
 import tensorflow as tf
 
+from vgg16 import vgg16
+
 n_classes = 10
 
 def feedforward(x):
@@ -37,4 +39,8 @@ def get_logits(x, model_name):
         out = feedforward(x)
     elif model_name == 'CNN':
         out = CNN(x)
+    elif model_name == 'VGG16':
+        vgg = vgg16(x)
+        out = vgg.CIFAR_fc_layers()
+        return out, vgg
     return out

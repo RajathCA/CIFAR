@@ -6,7 +6,7 @@ from models import get_logits
 
 
 MAX_EPOCHS = 30
-learning_rate = 0.001
+learning_rate = 0.0001
 batch_size = 128
 delay = 3
 
@@ -22,7 +22,10 @@ n_classes = 10
 x = tf.placeholder(tf.float32, shape=(None, height, width, channels))
 y = tf.placeholder(tf.float32, shape=(None, n_classes))
 
-logits = get_logits(x, sys.argv[1])
+if sys.argv[1] == 'VGG16':
+    logits, vgg = get_logits(x, sys.argv[1])
+else:
+    logits = get_logits(x, sys.argv[1])
 
 # Define Cross-Entropy Loss
 
@@ -68,6 +71,9 @@ count = 0
 with tf.Session() as sess:
     sess.run(init)
 
+    if sys.argv[1] == 'VGG16':
+        vgg.load_weights('vgg16_weights.npz', sess)
+
     for epoch in range(MAX_EPOCHS):
         data_loader.reset_epoch()
         avg_cost = 0.
@@ -75,7 +81,7 @@ with tf.Session() as sess:
 
         for i in range(n_batches):
             batch_x, batch_y = data_loader.get_batch(batch_size, 'train')
-            _, c = sess.run([train_op, loss_op], feed_dict={x : batch_x, y : batch_y})
+            _, c = sess.run([train_op, loss_op], feed_dict={x: batch_x, y: batch_y})
             avg_cost += c / n_batches
 
 
@@ -88,7 +94,7 @@ with tf.Session() as sess:
 
         for i in range(n_batches_val):   #Loop to Calculate Validation Cost
             batch_x, batch_y = data_loader.get_batch(batch_size_val, 'val')
-            c = loss_op.eval({x : batch_x, y : batch_y})
+            c = loss_op.eval({x: batch_x, y: batch_y})
             val_cost += c / n_batches_val
 
         print("Epoch:", '%04d' % (epoch+1), "Training cost = {:.9f}".format(avg_cost), "Validation cost = {:.9f}".format(val_cost))
@@ -121,7 +127,7 @@ with tf.Session() as sess:
 
     for i in range(n_batches_test):   #Loop to Calculate average Test Accuracy
         batch_x, batch_y = data_loader.get_batch(batch_size_test, 'test')
-        c = accuracy.eval({x : batch_x, y : batch_y})
+        c = accuracy.eval({x: batch_x, y: batch_y})
         avg_accuracy += c / n_batches_test
 
     print("Accuracy:", avg_accuracy)
