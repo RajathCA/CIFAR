@@ -4,6 +4,7 @@ train_percent = 0.9
 val_percent = 1 - train_percent
 num_channels = 3
 img_size = 32
+flip_probability = 0.5
 
 def unpickle(file):
     import pickle
@@ -54,6 +55,12 @@ def get_test():
     num_images_test = images_test.shape[0]
     return images_test, one_hot_encode(labels_test)
 
+def augmentation(images):
+    for i in range(images.shape[0]):
+        if np.random.rand() < flip_probability:
+            images[i] = np.fliplr(images[i])
+    return images
+
 class DataLoader:
 
     def __init__(self):
@@ -64,7 +71,7 @@ class DataLoader:
 
     def get_batch(self, batch_size, tag):
         if tag == 'train':
-            X, Y = self.train_X[self.train_ind : self.train_ind + batch_size], self.train_Y[self.train_ind : self.train_ind + batch_size]
+            X, Y = augmentation(self.train_X[self.train_ind : self.train_ind + batch_size]), self.train_Y[self.train_ind : self.train_ind + batch_size]
             self.train_ind += batch_size
         elif tag == 'val':
             X, Y = self.val_X[self.val_ind : self.val_ind + batch_size], self.val_Y[self.val_ind : self.val_ind + batch_size]
