@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 from vgg16 import vgg16
+from resnet_model import Model
 
 n_classes = 10
 
@@ -33,7 +34,27 @@ def CNN(x):
     out = tf.layers.dense(fc2, n_classes)
     return out
 
-def get_logits(x, model_name):
+def ResNet(x, training):
+
+    resnet_size = 50 # Set resnet_size to be of the form 6n + 2
+    num_blocks = (resnet_size - 2) // 6
+    resnet = Model(resnet_size=resnet_size,
+        bottleneck=False,
+        num_classes=n_classes,
+        num_filters=16,
+        kernel_size=3,
+        conv_stride=1,
+        first_pool_size=None,
+        first_pool_stride=None,
+        block_sizes=[num_blocks] * 3,
+        block_strides=[1, 2, 2],
+        resnet_version=2,
+        data_format='channels_last',
+        dtype=tf.float32
+        )
+    return resnet(x, training)
+
+def get_logits(x, training, model_name):
 
     if model_name == 'feedforward':
         out = feedforward(x)
@@ -43,4 +64,6 @@ def get_logits(x, model_name):
         vgg = vgg16(x)
         out = vgg.CIFAR_fc_layers()
         return out, vgg
+    elif model_name == 'ResNet':
+        out = ResNet(x, training)
     return out

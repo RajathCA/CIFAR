@@ -2,10 +2,13 @@
 import tensorflow as tf
 import numpy as np
 
+from data_loader import DataLoader
 
 class vgg16:
     def __init__(self, imgs, weights=None, sess=None):
-        self.imgs = imgs * 255.0 # We had scaled the image between 0 and 1 in data_loader
+        data_loader = DataLoader()
+        # Sice VGG16 uses pretrained weights with a different pre-processing, we undo pre-processing done in data_loader.py
+        self.imgs = (imgs * data_loader.std) + data_loader.mean
         self.convlayers()
         self.fc_layers()
         self.probs = tf.nn.softmax(self.fc3l)

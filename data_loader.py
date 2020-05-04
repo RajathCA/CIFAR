@@ -1,9 +1,13 @@
 import numpy as np
 
+from albumentations import ShiftScaleRotate
+
 train_percent = 0.9
 val_percent = 1 - train_percent
 num_channels = 3
 img_size = 32
+flip_probability = 0.5
+ShiftScaleRotate_probability = 0.10
 
 def unpickle(file):
     import pickle
@@ -14,7 +18,7 @@ def unpickle(file):
 def get_img_and_label(file):
     dict = unpickle(file)
     raw_img = dict[b'data']
-    raw_float = np.array(raw_img, dtype=np.float32) / 255.0
+    raw_float = np.array(raw_img, dtype=np.float32)
     images = raw_float.reshape([-1, num_channels, img_size, img_size])
     images = images.transpose([0, 2, 3, 1])
     labels = dict[b'labels']
@@ -54,17 +58,30 @@ def get_test():
     num_images_test = images_test.shape[0]
     return images_test, one_hot_encode(labels_test)
 
+def augmentation(images):
+    for i in range(images.shape[0]):
+        if np.random.rand() < flip_probability:
+            images[i] = np.fliplr(images[i])
+        aug = ShiftScaleRotate(rotate_limit=20 ,p=ShiftScaleRotate_probability)
+        images[i] = aug(image=images[i])['image']
+    return images
+
 class DataLoader:
 
     def __init__(self):
         self.train_X, self.train_Y, self.val_X, self.val_Y = get_train_and_val()
+        self.mean = np.mean(self.train_X, axis=(0,1,2))
+        self.std = np.std(self.train_X, axis=(0,1,2))
+        self.train_X = (self.train_X - self.mean) / self.std
+        self.val_X = (self.val_X - self.mean) / self.std
         self.test_X, self.test_Y = get_test()
+        self.test_X = (self.test_X - self.mean) / self.std
         self.train_ind, self.val_ind, self.test_ind = 0, 0, 0
         self.n_train, self.n_val, self.n_test = self.train_X.shape[0], self.val_X.shape[0], self.test_X.shape[0]
 
     def get_batch(self, batch_size, tag):
         if tag == 'train':
-            X, Y = self.train_X[self.train_ind : self.train_ind + batch_size], self.train_Y[self.train_ind : self.train_ind + batch_size]
+            X, Y = augmentation(self.train_X[self.train_ind : self.train_ind + batch_size]), self.train_Y[self.train_ind : self.train_ind + batch_size]
             self.train_ind += batch_size
         elif tag == 'val':
             X, Y = self.val_X[self.val_ind : self.val_ind + batch_size], self.val_Y[self.val_ind : self.val_ind + batch_size]
